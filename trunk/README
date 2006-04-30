@@ -1,0 +1,48 @@
+THIS SOFTWARE IS UNDER MIT LICENSE.  
+Copyright (C) 2005 Manlio Perillo
+
+Read LICENSE file for more informations.
+
+INTRODUCTION: 
+pglog is a set of database functions written in the PL/Python language
+that enable to log changes on selected tables.
+
+All functions, and the log table, are in the pglog schema.
+
+To enable log for a table do:
+SELECT pglog.enable_log('table')
+
+Table MUST have a primary key.
+
+At every INSERT, UPDATE or DELETE, the changes to the table are logged
+in the pglog.Logs table; moreover a NOTIFY named pglog is sent.
+
+The pglog.Logs table can be DELETE only by menmers of the group logger
+(created by the installer).
+
+The logging can be disabled using pglog.disable_log.
+
+pglog enable to revert changes.
+The function is pglog.reverd(id), where id is the id of the change.
+
+Please, note that the revert function is very simple and can fail for
+several reasons.
+It tries only to revert the specified change, ignoring the effects of
+subsequent changes.
+
+Here is a simple example:
+
+CREATE TABLE test (
+       x INTEGER PRIMARY KEY,
+       s TEXT
+);
+
+INSERT INTO test VALUES (1, 'a');
+DELETE test WHERE x = 1
+INSERT INTO test VALUES (1, 'b');
+
+now, reverting the DELETE command causes an error.
+
+REQUISITES: 
+Python 2.4 (http://python.org/)
+PostgreSQL 8.x (http://postgresql.org)

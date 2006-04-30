@@ -1,5 +1,5 @@
 /* 
-pglog: enable logs on a PostgreSQL database.
+pglog: enable change logs on a PostgreSQL database.
 
 $Id$
 
@@ -21,7 +21,8 @@ CREATE SCHEMA pglog;
 -- convenience view
 CREATE VIEW pglog.PrimaryKeys AS
        SELECT key.table_schema, key.table_name, key.column_name FROM
-       information_schema.key_column_usage AS key, information_schema.table_constraints AS type
+       information_schema.key_column_usage AS key, 
+       information_schema.table_constraints AS type
        WHERE type.constraint_type = 'PRIMARY KEY';
 
 -- The main log table
@@ -35,6 +36,7 @@ CREATE TABLE pglog.Logs (
        newrow TEXT
 );
 
+-- XXX we need to use EXTERNAL SECURITY DEFINER
 CREATE FUNCTION pglog.log() RETURNS trigger AS $$
        """Logs all changes to a table, updating the pglog.Logs table.
        """
@@ -58,17 +60,16 @@ CREATE FUNCTION pglog.log() RETURNS trigger AS $$
        new = TD["new"]
        
        # obtain the current user 
-       # XXX bug this is always the creator of this function
-       rv = plpy.execute("SELECT current_user")
-       user = rv[0]["current_user"]
+       # XXX TODO: this is always the creator of this function
+       rv = plpy.execute("SELECT current_user")[0]
+       user = rv["current_user"]
        
        plpy.execute(plan, [user, table, event, old, new])
        plpy.execute("NOTIFY pglog")
 $$ EXTERNAL SECURITY DEFINER LANGUAGE plpythonu;
 
 CREATE FUNCTION pglog.enable_log(text) RETURNS text AS $$
-       """Convenience function, used to enable logs to the 
-       given table.
+       """Enable change logs to the given table.
 
        Table MUST have a primary key.
 
@@ -92,8 +93,8 @@ CREATE FUNCTION pglog.enable_log(text) RETURNS text AS $$
           schema, table = table.split(".")
        else:
           # obtain the current schema
-          rv = plpy.execute("SELECT current_schema()")
-          schema = rv[0]["current_schema"]
+          rv = plpy.execute("SELECT current_schema()")[0]
+          schema = rv["current_schema"]
 
        # obtain the primary key for the table
        rv = plpy.execute(plan, [schema, table])
@@ -114,8 +115,7 @@ CREATE FUNCTION pglog.enable_log(text) RETURNS text AS $$
 $$ LANGUAGE plpythonu;
 
 CREATE FUNCTION pglog.disable_log(text) RETURNS text AS $$
-       """Convenience function, used to disable logs to the 
-       given table.
+       """Disable change logs to the given table.
        """
        
        table = args[0]
@@ -160,7 +160,7 @@ CREATE FUNCTION pglog.revert(int4) RETURNS text AS $$
        # get the primary key for the table
        pk = GD["pglog.primary_keys"][table]
 
-       # revert changes
+       # revert the modification
        if event == "DELETE":
           # XXX can fail if an incompatible row exists
           keys = ", ".join(old.keys())

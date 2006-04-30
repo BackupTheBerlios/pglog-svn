@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""pglog: enable logs on a PostgreSQL database.
+"""pglog: enable change logs on a PostgreSQL database.
 
 $Id$
 
@@ -22,7 +22,7 @@ from optparse import OptionParser
 usage = "usage: %prog options command"
 parser = OptionParser(usage)
 parser.add_option("-U", dest="user",
-                  help="the login name for database (musy be superuser)")
+                  help="the login name for database (must be superuser)")
 parser.add_option("-d", dest="db",
                   help="the database in witch to install pglog (like template1)")
 
@@ -38,7 +38,7 @@ if not options.db:
 
 
 if args[0] == "install":
-    # un psql
+    # run psql
     cmd = "psql -U %s -d %s -f pglog.sql" % (options.user, options.db)
     ret = system(cmd)
     if ret:

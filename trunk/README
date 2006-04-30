@@ -17,12 +17,12 @@ Table MUST have a primary key.
 At every INSERT, UPDATE or DELETE, the changes to the table are logged
 in the pglog.Logs table; moreover a NOTIFY named pglog is sent.
 
-The pglog.Logs table can be DELETE only by menmers of the group logger
+The pglog.Logs table can be DELETE only by members of the group logger
 (created by the installer).
 
 The logging can be disabled using pglog.disable_log.
 
-pglog enable to revert changes.
+pglog allow users to revert changes.
 The function is pglog.reverd(id), where id is the id of the change.
 
 Please, note that the revert function is very simple and can fail for
@@ -43,6 +43,6 @@ INSERT INTO test VALUES (1, 'b');
 
 now, reverting the DELETE command causes an error.
 
-REQUISITES: 
+REQUIREMENTS: 
 Python 2.4 (http://python.org/)
 PostgreSQL 8.x (http://postgresql.org)

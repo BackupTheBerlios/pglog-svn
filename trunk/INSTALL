@@ -2,8 +2,8 @@ Just run the setup script.
 
 The script assumes that psql is in your PATH.
 
-If you want to enable log support for all (newly created) databases,
-select the template1 database.
+If you want to enable change log support for all (newly created)
+databases, select the template1 database.
 
 Since the PL/Python language is untrusted, you must login to the
 database as superuser.

@@ -25,9 +25,11 @@ CREATE VIEW pglog.PrimaryKeys AS
        information_schema.table_constraints AS type
        WHERE type.constraint_type = 'PRIMARY KEY';
 
+CREATE SEQUENCE pglog.logs_seq;
+
 -- The main log table
 CREATE TABLE pglog.Logs (
-       id SERIAL PRIMARY KEY,
+       id INTEGER PRIMARY KEY DEFAULT nextval('pglog.logs_seq'),
        date TIMESTAMP,
        username TEXT,  -- the user who made the change
        tablename TEXT, -- name of the modified table, schema qualified
@@ -60,9 +62,8 @@ CREATE FUNCTION pglog.log() RETURNS trigger AS $$
        new = TD["new"]
        
        # obtain the current user 
-       # XXX TODO: this is always the creator of this function
-       rv = plpy.execute("SELECT current_user")[0]
-       user = rv["current_user"]
+       rv = plpy.execute("SELECT session_user")[0]
+       user = rv["session_user"]
        
        plpy.execute(plan, [user, table, event, old, new])
        plpy.execute("NOTIFY pglog")
@@ -193,12 +194,21 @@ CREATE FUNCTION pglog.revert(int4) RETURNS text AS $$
           plpy.error("Invalid event '%s'" % event)
 $$ LANGUAGE plpythonu;
 
+CREATE FUNCTION pglog.last_change_id() RETURNS int8 AS $$
+       /*Convenience function.
+
+       Return the id of the last change.
+       */
+
+       SELECT currval('pglog.logs_seq')
+$$ LANGUAGE SQL;
 
 -- setup privileges
 -- XXX TODO use roles? (only availables from 8.1)
 CREATE GROUP logger;
 
 GRANT USAGE ON SCHEMA pglog TO PUBLIC;
+GRANT SELECT ON TABLE pglog.logs_seq TO PUBLIC;
 GRANT SELECT ON TABLE pglog.Logs TO PUBLIC;
 GRANT DELETE ON TABLE pglog.Logs TO GROUP logger;
 GRANT SELECT ON TABLE pglog.PrimaryKeys TO PUBLIC;

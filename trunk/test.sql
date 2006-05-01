@@ -6,5 +6,6 @@
 --DELETE FROM baka WHERE x = 1;
 --SELECT * FROM pglog.Logs;
 --SELECT * FROM baka;
---SELECT pglog.revert(7);
+--SELECT pglog.revert(1);
 --SELECT pglog.disable_log('baka');
+--SELECT pglog.last_change_id();

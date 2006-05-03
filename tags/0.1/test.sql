@@ -1,0 +1,11 @@
+--SELECT pglog.enable_log('baka');
+--LISTEN pglog;
+--TRUNCATE baka;
+--INSERT INTO baka VALUES (1, 'baka');
+--UPDATE baka SET s='horray' WHERE x = 1;
+--DELETE FROM baka WHERE x = 1;
+--SELECT * FROM pglog.Logs;
+--SELECT * FROM baka;
+--SELECT pglog.revert(5);
+--SELECT pglog.disable_log('baka');
+--SELECT pglog.last_change_id();

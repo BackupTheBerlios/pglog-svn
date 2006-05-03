@@ -1,0 +1,22 @@
+Just run the setup script.
+
+The script assumes that psql is in your PATH.
+
+If you want to enable change log support for all (newly created)
+databases, select the template1 database.
+
+Since the PL/Python language is untrusted, you must login to the
+database as superuser.
+
+
+The syntax is
+
+setup.py install -U postgres -d template1
+
+assuming that the superuser name is postgres and that you want to
+install pglog to template1 database.
+
+To uninstall pglog run
+setup.py unistall
+
+with the same options.

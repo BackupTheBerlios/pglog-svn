@@ -1,0 +1,140 @@
+:Titolo: Introduzione a pglog
+:Autore: Manlio Perillo (manlio.perillo@gmail.com)
+:Data: 15 Maggio 2006
+:Licenza: pglog è rilasciato sotto licenza MIT, si legga il file LICENSE per maggiori informazioni
+
+
+=====
+pglog
+=====
+
+Introduzione
+============
+
+pglog è un insieme di funzioni, scritte nel liguaggio plpython, per
+PostgreSQL che abilitano il logging sulle tabelle selezionate.
+
+In questo modo si tiene traccia di tutte le modifiche effettuate
+(INSERT, UPDATE, DELETE) ad una tabella.
+
+I logs sono memorizzati nella tabella `pglog.Logs` che, per ragioni di
+sicurezza, è modificabile solo dal gruppo `logger`.
+
+pglog permette anche di annullare una determinata modifica (ma ci sono
+alcune restrizioni).
+
+
+Installazione
+=============
+
+Per installare pglog basta eseguire lo script setup.py.
+Gli argomenti sono: ::
+
+  setup.py install -U user -d database
+
+Dato che il linguaggio plpython è *untrusted*, l'utente dovrebbe avere
+diritti di super utente sul database.
+
+Infine, per abilitare il logging su tutti i (nuovi) database, si
+suggerisce di selezionare il database template1.
+
+Per rimuovere pglog, eseguire sempre lo script setup.py. ::
+
+  setup.py uninstall -U user -d database
+
+
+Tutorial
+========
+
+
+Per prima cosa creiamo una tabella di prova: ::
+
+  CREATE TABLE test (
+      x INTEGER PRIMARY KEY,
+      s TEXT
+  );
+
+
+Di seguito viene mostrata una tipica sequenza di comandi, il carattere
+`<` indica input dall'utente, il carattere `>` output da parte del
+database. ::
+
+  < SELECT pglog.enable_log('test');
+  > "x"  # enable_log restituisce la primary key della tabella, che *deve* 
+           essere presente
+
+  < LISTEN pglog;
+
+  < INSERT INTO test VALUES (1, 'test');
+  > Query returned successfully: 1 rows affected, 31 ms execution time.
+
+    Asynchronous notification of 'pglog' received from backend pid 2508
+
+  < SELECT * FROM pglog.Logs;
+  > 1; "2006-05-10 16:25:50.765"; "manlio"; "test" ; "INSERT"; ""; 
+    "{'x': 1, 's': 'test'}"
+
+  > SELECT pglog.revert(1);
+  < "{'x': 1, 's': 'test'}" # posso invertire delle modifiche
+
+
+Il revert è piuttosto limitato però, si legga il README per maggiori
+informazioni.
+In pratica non è detto che lo stato ripristinato dal revert sia
+compatibile con lo stato attuale.
+
+Si posso inoltre annullare anche la modifica fatta dal revert ::
+
+  > SELECT * FROM pglog.Logs;
+  < 1; "2006-05-10 16:25:50.765"; "manlio"; "test"; "INSERT"; "";
+    "{'x': 1, 's': 'test'}" 
+    2; "2006-05-10 16:27:49.703"; "manlio"; "test"; "DELETE"; 
+    "{'x': 1, 's': 'test'}"; ""
+
+  > SELECT pglog.revert(2);
+  < "{'x': 1, 's': 'test'}"
+
+  > SELECT * FROM test;
+  < 1; "test"
+
+
+Anche UPDATE è supportato. ::
+
+  > UPDATE test SET s='modified' WHERE x = 1;
+  < Query returned successfully: 1 rows affected, 16 ms execution time.
+
+    Asynchronous notification of 'pglog' received from backend pid 2508
+
+  > SELECT * FROM pglog.Logs;
+  < 1; "2006-05-10 16:25:50.765"; "manlio"; "test"; "INSERT"; ""; 
+    "{'x': 1, 's': 'test'}"
+    2; "2006-05-10 16:27:49.703"; "manlio"; "test"; "DELETE";
+    "{'x': 1, 's': 'test'}"; ""
+    3; "2006-05-10 16:31:14.531"; "manlio"; "test"; "INSERT"; "";
+    "{'x': 1, 's': 'test'}"
+    4; "2006-05-10 16:32:24.312"; "manlio"; "test"; "UPDATE";
+    "{'x': 1, 's': 'test'}"; "{'x': 1, 's': 'modified'}"
+
+  > SELECT pglog.revert(4);
+  < "{'x': 1, 's': 'modified'}"
+
+  > SELECT * FROM test;
+  < 1; "test"
+
+
+Per disabilitare il logging: ::
+
+  > SELECT pglog.disable_log('test');
+  < "test"  # disable_log restituisce il nome della tabella
+
+
+Notifiche
+=========
+
+In pglog è presente il supporto per le notifiche perchè in questo modo
+si può essere notificati ad ogni modifica di una tabella. 
+
+In pratica questo permette di usare il database come wiki; 
+gli utenti possono aggiungere dati e, volendo, possono collegarsi con
+un client per essere notificati ad ogni modifica, per tenersi
+sincronizzati.
